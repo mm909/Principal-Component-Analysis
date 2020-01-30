@@ -7,7 +7,7 @@
 using namespace Eigen;
 using namespace std;
 
-const int FeatureReduce = 0;
+const int FeatureReduce = 1;
 
 double covariance(MatrixXf, int, int);
 void sorteigen(MatrixXf&, MatrixXf&);
@@ -27,7 +27,7 @@ int main() {
 	// { 1.5, 1.6 }
 	// { 1.1, 0.9 }
 	// { 1.1, 0.9 }
-	
+
 	MatrixXf data(10, 2);
 	data(0, 0) = 2.5;
 	data(0, 1) = 2.4;
@@ -77,7 +77,7 @@ int main() {
 	normalizedData = data;
 	for (int i = 0; i < 2; i++) {
 		for (int j = 0; j < 10; j++) {
-			normalizedData(j,i) -= featureMeans(i);
+			normalizedData(j, i) -= featureMeans(i);
 		}
 	}
 
@@ -132,13 +132,28 @@ int main() {
 
 	cout << endl << "============================================" << endl;
 
+	double sumEValues = 0;
+	MatrixXf representation = sortedEValues;
+	for (int i = 0; i < representation.rows(); i++) {
+		sumEValues += representation(i, 0);
+	}
+	for (int i = 0; i < representation.rows(); i++) {
+		representation(i, 0) /= sumEValues;
+	}
+
+	cout << endl << "Representation of the data for each feature:" << endl << endl;
+	cout << representation << endl;
+	
+
+	cout << endl << "============================================" << endl;
+
 	// Remove low eigen values
 	MatrixXf RFV = sortedeVectors;
 	cout << endl << "Row Feature Vectors:" << endl << endl;
 	cout << RFV << endl;
 
 	MatrixXf reducedRFV = RFV;
-	for (int i = reducedRFV.rows()-FeatureReduce; i < reducedRFV.rows(); i++)
+	for (int i = reducedRFV.rows() - FeatureReduce; i < reducedRFV.rows(); i++)
 		for (int j = 0; j < reducedRFV.cols(); j++)
 			reducedRFV(i, j) = 0;
 	cout << endl << "Reduced Row Feature Vector: " << endl << endl;
@@ -150,11 +165,11 @@ int main() {
 	cout << endl << "Final Data:" << endl << endl;
 	MatrixXf Final = reducedRFV * transposedNormalizedData;
 	cout << Final.transpose() << endl;
-	   
+
 	// Get origional databack
 	// RowOriginalData = (RowFeatureVector^T x FinalData) + OriginalMean;
 	reducedRFV.transposeInPlace();
-	cout << endl << "RowOriginalData:" << endl << endl;
+	cout << endl << "Reconstructed Data:" << endl << endl;
 	MatrixXf newData = (reducedRFV * Final) + (featureMeans * featureIdenity);
 	cout << newData.transpose() << endl;
 
@@ -172,7 +187,7 @@ void removeRow(MatrixXf& matrix, unsigned int rowToRemove) {
 	matrix.conservativeResize(numRows, numCols);
 }
 
-void sorteigen(MatrixXf & eValues, MatrixXf & eVectors) {
+void sorteigen(MatrixXf& eValues, MatrixXf& eVectors) {
 	for (int i = 0; i < eValues.rows() - 1; i++) {
 		for (int j = 0; j < eValues.rows() - i - 1; j++) {
 			if (eValues(j, 0) < eValues(j + 1, 0)) {
@@ -181,7 +196,7 @@ void sorteigen(MatrixXf & eValues, MatrixXf & eVectors) {
 				eValues(j + 1, 0) = temp;
 				for (int k = 0; k < eValues.rows(); k++) {
 					double temp = eVectors(k, j);
-					eVectors(k, j) = eVectors(k, j+1);
+					eVectors(k, j) = eVectors(k, j + 1);
 					eVectors(k, j + 1) = temp;
 				}
 			}
@@ -192,8 +207,125 @@ void sorteigen(MatrixXf & eValues, MatrixXf & eVectors) {
 double covariance(MatrixXf data, int i, int j) {
 	double sum = 0;
 	for (int k = 0; k < 10; k++) {
-		sum += (data(k,i) * data(k, j));
+		sum += (data(k, i) * data(k, j));
 	}
 	sum /= 9;
 	return sum;
 }
+/*
+
+
+Starting Data:
+
+2.5 2.4
+0.5 0.7
+2.2 2.9
+1.9 2.2
+3.1   3
+2.3 2.7
+  2 1.6
+  1 1.1
+1.5 1.6
+1.1 0.9
+
+============================================
+
+Normalized Data:
+
+	 0.69      0.49
+	-1.31     -1.21
+	 0.39      0.99
+0.0899999      0.29
+	 1.29      1.09
+	 0.49      0.79
+	 0.19     -0.31
+	-0.81     -0.81
+	-0.31     -0.31
+	-0.71     -1.01
+
+Transposed Normalized Data:
+
+	 0.69     -1.31      0.39 0.0899999      1.29      0.49      0.19     -0.81     -0.31     -0.71
+	 0.49     -1.21      0.99      0.29      1.09      0.79     -0.31     -0.81     -0.31     -1.01
+
+============================================
+
+Covariance Matrix:
+
+0.616556 0.615444
+0.615444 0.716556
+
+============================================
+
+Eigenvalues:
+
+0.0490834
+  1.28403
+
+Eigenvectors:
+
+-0.735179 -0.677873
+ 0.677873 -0.735179
+
+============================================
+
+Sorted Eigen Values:
+
+  1.28403
+0.0490834
+
+Sorted Eigen Vectors:
+
+-0.677873 -0.735179
+-0.735179  0.677873
+
+============================================
+
+Representation of the data for each feature:
+
+ 0.963181
+0.0368187
+
+============================================
+
+Row Feature Vectors:
+
+-0.677873 -0.735179
+-0.735179  0.677873
+
+Reduced Row Feature Vector:
+
+-0.677873 -0.735179
+		0         0
+
+============================================
+
+Final Data:
+
+ -0.82797         0
+  1.77758        -0
+-0.992198         0
+ -0.27421         0
+  -1.6758         0
+-0.912949         0
+0.0991095         0
+  1.14457        -0
+ 0.438046        -0
+  1.22382        -0
+
+RowOriginalData:
+
+ 2.37126  2.51871
+0.605025 0.603161
+ 2.48258  2.63944
+ 1.99588  2.11159
+ 2.94598  3.14201
+ 2.42886  2.58118
+ 1.74282  1.83714
+ 1.03412  1.06853
+ 1.51306  1.58796
+0.980405  1.01027
+
+============================================
+
+*/
